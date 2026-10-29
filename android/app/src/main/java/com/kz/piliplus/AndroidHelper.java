@@ -1,6 +1,6 @@
-package com.example.piliplus;
+package com.kz.piliplus;
 
-import static com.example.piliplus.MediaHelper.getRemoteAction;
+import static com.kz.piliplus.MediaHelper.getRemoteAction;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

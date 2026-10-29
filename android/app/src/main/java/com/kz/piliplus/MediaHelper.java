@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.example.piliplus;
+package com.kz.piliplus;
 
 import android.app.PendingIntent;
 import android.app.RemoteAction;
