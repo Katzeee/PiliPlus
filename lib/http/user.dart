@@ -87,6 +87,7 @@ abstract final class UserHttp {
     required String type,
     int? max,
     int? viewAt,
+    String? business,
     Account? account,
     int ps = 20,
   }) async {
@@ -97,6 +98,7 @@ abstract final class UserHttp {
         'ps': ps,
         'max': max ?? 0,
         'view_at': viewAt ?? 0,
+        'business': ?business,
       },
       options: Options(extra: {'account': account ?? Accounts.history}),
     );
