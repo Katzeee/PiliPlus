@@ -1855,7 +1855,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   void onPopInvokedWithResult(bool didPop, Object? result) {
     if (didPop) {
-      if (playerStatus.isPlaying) {
+      if (playerStatus.isPlaying && MiniPlayer.session == null) {
         pause();
       }
 
