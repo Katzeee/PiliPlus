@@ -341,6 +341,13 @@ List<SettingsModel> get playSettings => [
     setKey: MiniPlayer.settingKey,
     defaultVal: true,
   ),
+  const SwitchModel(
+    title: '跳转页面时自动小窗',
+    subtitle: '播放中从视频页打开其他页面时，以小窗继续播放',
+    leading: Icon(Icons.open_in_new),
+    setKey: MiniPlayer.autoOnLeaveKey,
+    defaultVal: true,
+  ),
   if ((Platform.isAndroid && PiliAndroidHelper.isPipAvailable) ||
       (Platform.isIOS && IOSPipHelper.isAvailable))
     SwitchModel(

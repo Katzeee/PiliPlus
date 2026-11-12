@@ -762,6 +762,10 @@ class VideoDetailController extends GetxController
   }
 
   bool _miniHandoff = false;
+
+  /// The next [playerInit] keeps the media the mini player is running.
+  void adoptMiniPlayer() => _miniHandoff = true;
+
   bool _takeMiniHandoff() {
     final handoff = _miniHandoff;
     _miniHandoff = false;

@@ -357,7 +357,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
 
     if (!videoDetailController.plPlayerController.isCloseAll) {
-      if (!MiniPlayer.owns(heroTag)) {
+      if (!MiniPlayer.onVideoPageDisposed(heroTag)) {
         videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
       }
       if (plPlayerController != null) {
@@ -386,8 +386,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     introController.cancelTimer();
 
+    // The mini player keeps the video running while this page is covered.
+    final toMini = MiniPlayer.onVideoPagePushed(videoDetailController);
     videoDetailController
-      ..videoState.value = false
+      ..videoState.value = toMini
       ..cancelBlockListener()
       ..playerStatus = plPlayerController?.playerStatus
       ..brightness = plPlayerController?.brightness.value;
@@ -395,8 +397,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       videoDetailController.makeHeartBeat();
       plPlayerController!
         ..removeStatusLister(playerListener)
-        ..removePositionListener(positionListener)
-        ..pause();
+        ..removePositionListener(positionListener);
+      if (!toMini) plPlayerController!.pause();
     }
   }
 
@@ -406,7 +408,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     super.didPopNext();
 
     if (videoDetailController.plPlayerController.isCloseAll ||
-        MiniPlayer.onVideoPageResumed()) {
+        MiniPlayer.onVideoPageResumed(videoDetailController)) {
       return;
     }
 

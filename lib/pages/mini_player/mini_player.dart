@@ -11,16 +11,28 @@ import 'package:media_kit_video/media_kit_video.dart';
 
 /// In-app mini player.
 ///
-/// Swiping the player down on a video page pops the page while the shared
-/// [PlPlayerController] keeps playing in a draggable window above the
-/// navigator. Tapping the window reopens the page, which adopts the running
-/// player instead of loading the media again.
+/// The shared [PlPlayerController] keeps playing in a draggable window above
+/// the navigator while the video page is out of sight:
+///
+/// * Swiping the player opposite to the fullscreen gesture pops the video
+///   pages. Tapping the window reopens the page, which adopts the running
+///   player instead of loading the media again.
+/// * Opening another page from a playing video page leaves the video page
+///   covered in the stack. Tapping the window, or going back, returns to it
+///   and it adopts the running player the same way.
 abstract final class MiniPlayer {
   static const settingKey = 'fork_inAppMiniPlayer';
   static bool get enabled =>
       GStorage.setting.get(settingKey, defaultValue: true);
 
+  static const autoOnLeaveKey = 'fork_autoMiniPlayerOnLeave';
+  static bool get autoOnLeave =>
+      GStorage.setting.get(autoOnLeaveKey, defaultValue: true);
+
   static const _videoRoute = '/videoV';
+
+  /// Pages that take the player over, so the window would only flash.
+  static const _playerRoutes = [_videoRoute, '/liveRoom', '/audio'];
 
   static final Rxn<MiniPlayerSession> _session = Rxn();
   static MiniPlayerSession? get session => _session.value;
@@ -35,17 +47,31 @@ abstract final class MiniPlayer {
     enter(videoCtr);
   }
 
+  /// Video page hook for `didPushNext`: returns true when the window takes
+  /// over, and the page must keep the player running instead of pausing.
+  static bool onVideoPagePushed(VideoDetailController videoCtr) {
+    final player = videoCtr.plPlayerController;
+    if (!enabled ||
+        !autoOnLeave ||
+        session != null ||
+        !player.playerStatus.isPlaying ||
+        player.isFullScreen.value ||
+        player.videoController == null) {
+      return false;
+    }
+    final route = Get.currentRoute;
+    if (_playerRoutes.any((e) => route == e || route.startsWith('$e?'))) {
+      return false;
+    }
+    _hold(videoCtr, covered: true);
+    return true;
+  }
+
   /// Leaves the video pages and continues playback in the mini window.
   static void enter(VideoDetailController videoCtr) {
     final player = videoCtr.plPlayerController;
     if (session != null || player.videoController == null) return;
-    // Hold a reference so the page's dispose does not release the player.
-    PlPlayerController.getInstance();
-    _session.value = MiniPlayerSession(
-      heroTag: videoCtr.heroTag,
-      arguments: Map.of(videoCtr.args),
-      player: player,
-    );
+    _hold(videoCtr, covered: false);
     _entering = true;
     try {
       Get.until(
@@ -56,29 +82,62 @@ abstract final class MiniPlayer {
     }
   }
 
+  static void _hold(VideoDetailController videoCtr, {required bool covered}) {
+    // Hold a reference so the page's dispose does not release the player.
+    PlPlayerController.getInstance();
+    _session.value = MiniPlayerSession(
+      heroTag: videoCtr.heroTag,
+      arguments: Map.of(videoCtr.args),
+      player: videoCtr.plPlayerController,
+      covered: covered,
+    );
+  }
+
   /// True while [enter] pops the video pages.
   static bool _entering = false;
 
   /// Video page hook for `didPopNext`: returns true when the page must not
-  /// resume. Pages uncovered while entering are popped right after; any other
-  /// video page coming back takes the player over from the mini window.
-  static bool onVideoPageResumed() {
+  /// resume. Pages uncovered while entering are popped right after. The
+  /// covered page that owns the window adopts the running player; any other
+  /// video page coming back takes the player over from the window.
+  static bool onVideoPageResumed(VideoDetailController videoCtr) {
     if (_entering) return true;
-    close();
+    final session = MiniPlayer.session;
+    if (session != null &&
+        session.covered &&
+        session.heroTag == videoCtr.heroTag) {
+      videoCtr.adoptMiniPlayer();
+      _release();
+    } else {
+      close();
+    }
     return false;
   }
 
-  /// Whether the mini window took over the page with [heroTag].
-  static bool owns(String heroTag) => session?.heroTag == heroTag;
+  /// Video page hook for `dispose`: whether the mini window owns the page
+  /// with [heroTag]. The window then reopens the page instead of returning.
+  static bool onVideoPageDisposed(String heroTag) {
+    final session = MiniPlayer.session;
+    if (session == null || session.heroTag != heroTag) return false;
+    session.covered = false;
+    return true;
+  }
 
-  /// Reopens the video page, which adopts the running player.
+  /// Returns to the video page, which adopts the running player.
   static void restore() {
     final session = MiniPlayer.session;
-    if (session == null ||
-        _handoffTag != null ||
-        Get.isRegistered<VideoDetailController>(tag: session.heroTag)) {
+    if (session == null || _handoffTag != null) return;
+    if (session.covered) {
+      Get.until(
+        (route) =>
+            route.isFirst ||
+            (route.settings.arguments is Map &&
+                (route.settings.arguments as Map)['heroTag'] ==
+                    session.heroTag),
+      );
       return;
     }
+    if (Get.isRegistered<VideoDetailController>(tag: session.heroTag)) return;
     _handoffTag = session.heroTag;
     PageUtils.toDupNamed(_videoRoute, arguments: Map.of(session.arguments));
   }
@@ -118,11 +177,15 @@ class MiniPlayerSession {
     required this.heroTag,
     required this.arguments,
     required this.player,
+    required this.covered,
   });
 
   final String heroTag;
   final Map arguments;
   final PlPlayerController player;
+
+  /// Whether the owning video page is still in the stack below.
+  bool covered;
 }
 
 /// Layer above the navigator that hosts the mini window.
