@@ -418,7 +418,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     plPlayerController?.isLive = false;
     if (videoDetailController.plPlayerController.playerStatus.isPlaying &&
-        videoDetailController.playerStatus != PlayerStatus.playing) {
+        videoDetailController.playerStatus != PlayerStatus.playing &&
+        MiniPlayer.session == null) {
       videoDetailController.plPlayerController.pause();
     }
 

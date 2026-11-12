@@ -688,7 +688,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   // 获取实例 传参
   static PlPlayerController getInstance({bool isLive = false}) {
-    MiniPlayer.onPlayerAcquire();
+    if (isLive) MiniPlayer.onPlayerTakeover();
     // 如果实例尚未创建，则创建一个新实例
     return (_instance ??= PlPlayerController._())
       ..isLive = isLive
@@ -728,6 +728,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     bool autoFullScreenFlag = false,
     int? rotate,
   }) async {
+    MiniPlayer.onPlayerTakeover();
     try {
       _processing = true;
       this.isLive = isLive;

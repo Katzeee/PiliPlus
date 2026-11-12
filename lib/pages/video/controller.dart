@@ -750,7 +750,9 @@ class VideoDetailController extends GetxController
 
   Future<void>? initPlayerIfNeeded(bool autoFullScreenFlag) {
     if (_autoPlay.value ||
-        (plPlayerController.preInitPlayer && !plPlayerController.processing) &&
+        (plPlayerController.preInitPlayer &&
+                MiniPlayer.session == null &&
+                !plPlayerController.processing) &&
             (isFileSource
                 ? true
                 : videoPlayerKey.currentState?.mounted == true)) {

@@ -4,6 +4,7 @@ import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -31,8 +32,13 @@ abstract final class MiniPlayer {
 
   static const _videoRoute = '/videoV';
 
-  /// Pages that take the player over, so the window would only flash.
-  static const _playerRoutes = [_videoRoute, '/liveRoom', '/audio'];
+  /// Pages that take the player over at once, so the window would only
+  /// flash. A video page waits for play unless autoplay is on.
+  static List<String> get _playerRoutes => [
+    if (Pref.autoPlayEnable) _videoRoute,
+    '/liveRoom',
+    '/audio',
+  ];
 
   static final Rxn<MiniPlayerSession> _session = Rxn();
   static MiniPlayerSession? get session => _session.value;
@@ -99,7 +105,8 @@ abstract final class MiniPlayer {
   /// Video page hook for `didPopNext`: returns true when the page must not
   /// resume. Pages uncovered while entering are popped right after. The
   /// covered page that owns the window adopts the running player; any other
-  /// video page coming back takes the player over from the window.
+  /// video page that played before takes the player over from the window,
+  /// while one that never played leaves it running.
   static bool onVideoPageResumed(VideoDetailController videoCtr) {
     if (_entering) return true;
     final session = MiniPlayer.session;
@@ -108,7 +115,7 @@ abstract final class MiniPlayer {
         session.heroTag == videoCtr.heroTag) {
       videoCtr.adoptMiniPlayer();
       _release();
-    } else {
+    } else if (videoCtr.autoPlay) {
       close();
     }
     return false;
@@ -151,9 +158,10 @@ abstract final class MiniPlayer {
     return true;
   }
 
-  /// Player hook: any other page acquiring the shared player ends the
-  /// mini window, so it never shows someone else's media.
-  static void onPlayerAcquire() {
+  /// Player hook: loading other media, or a live room acquiring the player,
+  /// ends the mini window, so it never shows someone else's media. A video
+  /// page that is opened but not played yet leaves the window running.
+  static void onPlayerTakeover() {
     if (_handoffTag == null) close();
   }
 
@@ -163,6 +171,13 @@ abstract final class MiniPlayer {
     if (session == null) return;
     _handoffTag = null;
     session.player.pause();
+    if (session.covered &&
+        Get.isRegistered<VideoDetailController>(tag: session.heroTag)) {
+      // The covered page kept its player view for the handoff; it reloads
+      // its own media when it comes back.
+      Get.find<VideoDetailController>(tag: session.heroTag).videoState.value =
+          false;
+    }
     _release();
   }
 
