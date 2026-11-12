@@ -4,6 +4,7 @@ import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -164,6 +165,7 @@ class _MiniPlayerWindowState extends State<_MiniPlayerWindow>
   static Offset? _lastOffset;
 
   Offset? _offset;
+  bool _dragging = false;
 
   PlPlayerController get _player => widget.session.player;
 
@@ -260,74 +262,93 @@ class _MiniPlayerWindowState extends State<_MiniPlayerWindow>
       ),
     );
 
-    return Positioned(
+    void snapToEdge() {
+      final current = _offset ?? offset;
+      final center = current.dx + size.width / 2;
+      setState(() {
+        _dragging = false;
+        _offset = _lastOffset = Offset(
+          center < screen.width / 2 ? bounds.left : bounds.right,
+          current.dy,
+        );
+      });
+    }
+
+    return AnimatedPositioned(
+      duration: _dragging ? Duration.zero : const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
       left: offset.dx,
       top: offset.dy,
       width: size.width,
       height: size.height,
       child: GestureDetector(
+        // The first update carries the movement inside the touch slop, so
+        // the window does not trail the finger.
+        dragStartBehavior: DragStartBehavior.down,
+        onPanStart: (_) => setState(() {
+          _dragging = true;
+          _offset = offset;
+        }),
+        // Accumulate on the field: several events can arrive in one frame.
         onPanUpdate: (details) => setState(
-          () => _offset = _clamp(offset + details.delta, bounds),
+          () => _offset = _clamp(_offset! + details.delta, bounds),
         ),
-        onPanEnd: (_) {
-          final center = offset.dx + size.width / 2;
-          setState(() {
-            _offset = _lastOffset = Offset(
-              center < screen.width / 2 ? bounds.left : bounds.right,
-              offset.dy,
-            );
-          });
+        onPanEnd: (_) => snapToEdge(),
+        onPanCancel: () {
+          if (_dragging) snapToEdge();
         },
-        child: Material(
-          elevation: 6,
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(12),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: MiniPlayer.restore,
-                  child: ColoredBox(
-                    color: Colors.black,
-                    child: Center(
-                      child: FittedBox(
-                        child: SimpleVideo(controller: videoController),
+        child: RepaintBoundary(
+          child: Material(
+            elevation: 6,
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(12),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: MiniPlayer.restore,
+                    child: ColoredBox(
+                      color: Colors.black,
+                      child: Center(
+                        child: FittedBox(
+                          child: SimpleVideo(controller: videoController),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(
-                height: _barHeight,
-                child: Row(
-                  children: [
-                    button(Icons.replay_10, () => _seekBy(-10000)),
-                    Expanded(
-                      child: StreamBuilder<bool>(
-                        stream: nativePlayer.stream.playing,
-                        initialData: nativePlayer.state.playing,
-                        builder: (context, snapshot) {
-                          final playing = snapshot.data ?? false;
-                          return IconButton(
-                            onPressed: playing ? _player.pause : _player.play,
-                            icon: Icon(
-                              playing ? Icons.pause : Icons.play_arrow,
-                              size: 20,
-                              color: colorScheme.onSurface,
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                          );
-                        },
+                SizedBox(
+                  height: _barHeight,
+                  child: Row(
+                    children: [
+                      button(Icons.replay_10, () => _seekBy(-10000)),
+                      Expanded(
+                        child: StreamBuilder<bool>(
+                          stream: nativePlayer.stream.playing,
+                          initialData: nativePlayer.state.playing,
+                          builder: (context, snapshot) {
+                            final playing = snapshot.data ?? false;
+                            return IconButton(
+                              onPressed: playing ? _player.pause : _player.play,
+                              icon: Icon(
+                                playing ? Icons.pause : Icons.play_arrow,
+                                size: 20,
+                                color: colorScheme.onSurface,
+                              ),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    button(Icons.forward_10, () => _seekBy(10000)),
-                    button(Icons.close, MiniPlayer.close),
-                  ],
+                      button(Icons.forward_10, () => _seekBy(10000)),
+                      button(Icons.close, MiniPlayer.close),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
