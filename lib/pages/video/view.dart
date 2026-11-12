@@ -24,6 +24,7 @@ import 'package:PiliPlus/models_new/video/video_tag/data.dart';
 import 'package:PiliPlus/pages/common/common_intro_controller.dart';
 import 'package:PiliPlus/pages/danmaku/view.dart';
 import 'package:PiliPlus/pages/episode_panel/view.dart';
+import 'package:PiliPlus/pages/mini_player/mini_player.dart';
 import 'package:PiliPlus/pages/video/ai_conclusion/view.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/local/controller.dart';
@@ -356,7 +357,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
 
     if (!videoDetailController.plPlayerController.isCloseAll) {
-      videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
+      if (!MiniPlayer.onVideoPageDisposed(heroTag)) {
+        videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
+      }
       if (plPlayerController != null) {
         videoDetailController.makeHeartBeat();
         plPlayerController!.dispose();
@@ -383,8 +386,10 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     introController.cancelTimer();
 
+    // The mini player keeps the video running while this page is covered.
+    final toMini = MiniPlayer.onVideoPagePushed(videoDetailController);
     videoDetailController
-      ..videoState.value = false
+      ..videoState.value = toMini
       ..cancelBlockListener()
       ..playerStatus = plPlayerController?.playerStatus
       ..brightness = plPlayerController?.brightness.value;
@@ -392,8 +397,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       videoDetailController.makeHeartBeat();
       plPlayerController!
         ..removeStatusLister(playerListener)
-        ..removePositionListener(positionListener)
-        ..pause();
+        ..removePositionListener(positionListener);
+      if (!toMini) plPlayerController!.pause();
     }
   }
 
@@ -402,7 +407,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   void didPopNext() {
     super.didPopNext();
 
-    if (videoDetailController.plPlayerController.isCloseAll) {
+    if (videoDetailController.plPlayerController.isCloseAll ||
+        MiniPlayer.onVideoPageResumed(videoDetailController)) {
       return;
     }
 
@@ -412,7 +418,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
 
     plPlayerController?.isLive = false;
     if (videoDetailController.plPlayerController.playerStatus.isPlaying &&
-        videoDetailController.playerStatus != PlayerStatus.playing) {
+        videoDetailController.playerStatus != PlayerStatus.playing &&
+        MiniPlayer.session == null) {
       videoDetailController.plPlayerController.pause();
     }
 
