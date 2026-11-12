@@ -1,11 +1,13 @@
+import 'package:PiliPlus/models_new/history/cursor.dart';
 import 'package:PiliPlus/models_new/history/list.dart';
 import 'package:PiliPlus/models_new/history/tab.dart';
 
 class HistoryData {
   List<HistoryTab>? tab;
   List<HistoryItemModel>? list;
+  HistoryCursor? cursor;
 
-  HistoryData({this.tab, this.list});
+  HistoryData({this.tab, this.list, this.cursor});
 
   factory HistoryData.fromJson(Map<String, dynamic> json) => HistoryData(
     tab: (json['tab'] as List<dynamic>?)
@@ -14,5 +16,8 @@ class HistoryData {
     list: (json['list'] as List<dynamic>?)
         ?.map((e) => HistoryItemModel.fromJson(e as Map<String, dynamic>))
         .toList(),
+    cursor: json['cursor'] == null
+        ? null
+        : HistoryCursor.fromJson(json['cursor'] as Map<String, dynamic>),
   );
 }

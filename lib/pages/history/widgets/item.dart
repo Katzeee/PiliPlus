@@ -20,12 +20,14 @@ class HistoryItem extends StatelessWidget {
   final HistoryItemModel item;
   final MultiSelectBase ctr;
   final void Function(int kid, String business) onDelete;
+  final Widget? sourceBadge;
 
   const HistoryItem({
     super.key,
     required this.item,
     required this.ctr,
     required this.onDelete,
+    this.sourceBadge,
   });
 
   @override
@@ -77,6 +79,7 @@ class HistoryItem extends StatelessWidget {
                               height: maxHeight,
                             ),
                             ?item.label,
+                            ?sourceBadge,
                             if (hasDuration)
                               ...item.progressIndicator(theme.colorScheme),
                             Positioned.fill(

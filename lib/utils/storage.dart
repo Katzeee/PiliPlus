@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:PiliPlus/models/model_owner.dart';
 import 'package:PiliPlus/models/user/danmaku_rule_adapter.dart';
 import 'package:PiliPlus/models/user/info.dart';
+import 'package:PiliPlus/models_new/local_history/local_history_item.dart';
+import 'package:PiliPlus/models_new/local_history/local_history_item_adapter.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/accounts/account_adapter.dart';
 import 'package:PiliPlus/utils/accounts/account_type_adapter.dart';
@@ -23,6 +25,7 @@ abstract final class GStorage {
   static late final Box<dynamic> video;
   static late final Box<int> watchProgress;
   static late final Box<Uint8List>? reply;
+  static late final Box<LocalHistoryItem> forkLocalHistory;
 
   static Future<void> init() async {
     Hive.init(path.join(appSupportDirPath, 'hive'));
@@ -62,6 +65,12 @@ abstract final class GStorage {
           return deletedEntries > 4;
         },
       ).then((res) => watchProgress = res),
+      Hive.openBox<LocalHistoryItem>(
+        'fork_localHistory',
+        compactionStrategy: (entries, deletedEntries) {
+          return deletedEntries > 50;
+        },
+      ).then((res) => forkLocalHistory = res),
     ]);
 
     if (Pref.saveReply) {
@@ -105,7 +114,8 @@ abstract final class GStorage {
       ..registerAdapter(LoginAccountAdapter())
       ..registerAdapter(AccountTypeAdapter())
       ..registerAdapter(SetIntAdapter())
-      ..registerAdapter(RuleFilterAdapter());
+      ..registerAdapter(RuleFilterAdapter())
+      ..registerAdapter(LocalHistoryItemAdapter());
   }
 
   static Future<List<void>> compact() {
@@ -117,6 +127,7 @@ abstract final class GStorage {
       video.compact(),
       Accounts.account.compact(),
       watchProgress.compact(),
+      forkLocalHistory.compact(),
       ?reply?.compact(),
     ]);
   }
@@ -130,6 +141,7 @@ abstract final class GStorage {
       video.close(),
       Accounts.account.close(),
       watchProgress.close(),
+      forkLocalHistory.close(),
       ?reply?.close(),
     ]);
   }
@@ -143,6 +155,7 @@ abstract final class GStorage {
       video.clear(),
       Accounts.clear(),
       watchProgress.clear(),
+      forkLocalHistory.clear(),
       ?reply?.clear(),
     ]);
   }

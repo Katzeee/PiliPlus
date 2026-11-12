@@ -1,5 +1,6 @@
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
+import 'package:PiliPlus/pages/history/local/local_history_account.dart';
 import 'package:PiliPlus/pages/mine/controller.dart';
 import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/login_utils.dart';
@@ -55,6 +56,7 @@ abstract final class Accounts {
     }
     await AnonymousAccount().delete();
     Request.buvidActive(AnonymousAccount());
+    refreshLocalHistoryAccount();
   }
 
   static Future<void> deleteAll(Set<Account> accounts) async {
@@ -68,6 +70,7 @@ abstract final class Accounts {
     if (isLoginMain && !Accounts.main.isLogin) {
       await LoginUtils.onLogoutMain();
     }
+    refreshLocalHistoryAccount();
   }
 
   static Future<void> set(AccountType key, Account account) async {
@@ -87,6 +90,7 @@ abstract final class Accounts {
       default:
         break;
     }
+    refreshLocalHistoryAccount();
   }
 
   @pragma("vm:prefer-inline")
@@ -104,5 +108,6 @@ abstract final class Accounts {
     if (Accounts.main.isLogin) {
       await LoginUtils.onLoginMain();
     }
+    refreshLocalHistoryAccount();
   }
 }

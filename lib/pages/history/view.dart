@@ -11,6 +11,8 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models_new/history/list.dart';
 import 'package:PiliPlus/pages/history/base_controller.dart';
 import 'package:PiliPlus/pages/history/controller.dart';
+import 'package:PiliPlus/pages/history/local/local_history_controller.dart';
+import 'package:PiliPlus/pages/history/local/local_history_widgets.dart';
 import 'package:PiliPlus/pages/history/widgets/item.dart';
 import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/grid.dart';
@@ -28,15 +30,15 @@ class HistoryPage extends StatefulWidget {
 
 class _HistoryPageState extends State<HistoryPage>
     with AutomaticKeepAliveClientMixin, GridMixin {
-  late final HistoryController _historyController;
+  late final LocalHistoryController _historyController;
 
   @override
   void initState() {
     super.initState();
-    _historyController = Get.put(
-      HistoryController(widget.type),
+    _historyController = Get.put<HistoryController>(
+      LocalHistoryController(widget.type),
       tag: widget.type ?? 'all',
-    );
+    ) as LocalHistoryController;
   }
 
   HistoryController currCtr([int? index]) {
@@ -110,6 +112,7 @@ class _HistoryPageState extends State<HistoryPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     ?_buildPauseTip,
+                    const LocalHistorySyncBar(),
                     TabBar(
                       controller: _historyController.tabController,
                       onTap: (index) {
@@ -159,6 +162,7 @@ class _HistoryPageState extends State<HistoryPage>
   AppBar get _buildAppBar => AppBar(
     title: const Text('观看记录'),
     actions: [
+      LocalHistoryFilterButton(state: _historyController.viewState),
       IconButton(
         tooltip: '搜索',
         onPressed: () => Get.toNamed('/historySearch'),
@@ -175,23 +179,7 @@ class _HistoryPageState extends State<HistoryPage>
             ),
           ),
           PopupMenuItem(
-            onTap: () => _historyController.baseCtr.onClearHistory(
-              context,
-              () {
-                _historyController.loadingState.value = const Success(null);
-                if (_historyController.tabController != null) {
-                  for (final item in _historyController.tabs) {
-                    try {
-                      Get.find<HistoryController>(
-                        tag: item.type,
-                      ).loadingState.value = const Success(
-                        null,
-                      );
-                    } catch (_) {}
-                  }
-                }
-              },
-            ),
+            onTap: () => _historyController.onClearHistory(context),
             child: const Text('清空观看记录'),
           ),
           PopupMenuItem(
@@ -221,6 +209,10 @@ class _HistoryPageState extends State<HistoryPage>
                     ctr: _historyController,
                     onDelete: (kid, business) =>
                         _historyController.delHistory(item),
+                    sourceBadge: LocalHistorySourceBadge(
+                      state: _historyController.viewState,
+                      item: item,
+                    ),
                   );
                 },
                 itemCount: response.length,
