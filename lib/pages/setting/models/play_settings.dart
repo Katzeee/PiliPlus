@@ -6,6 +6,7 @@ import 'package:PiliPlus/models/common/audio_normalization.dart';
 import 'package:PiliPlus/models/common/super_chat_type.dart';
 import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/video/subtitle_pref_type.dart';
+import 'package:PiliPlus/pages/mini_player/mini_player.dart';
 import 'package:PiliPlus/pages/setting/models/model.dart';
 import 'package:PiliPlus/pages/setting/pages/fullscreen_sc.dart';
 import 'package:PiliPlus/pages/setting/widgets/select_dialog.dart';
@@ -333,6 +334,13 @@ List<SettingsModel> get playSettings => [
       setKey: SettingBoxKey.continuePlayInBackground,
       defaultVal: false,
     ),
+  const SwitchModel(
+    title: '应用内小窗',
+    subtitle: '非全屏时向全屏手势的反方向滑动播放器，返回上一页并以小窗继续播放',
+    leading: Icon(Icons.picture_in_picture_alt_outlined),
+    setKey: MiniPlayer.settingKey,
+    defaultVal: true,
+  ),
   if ((Platform.isAndroid && PiliAndroidHelper.isPipAvailable) ||
       (Platform.isIOS && IOSPipHelper.isAvailable))
     SwitchModel(

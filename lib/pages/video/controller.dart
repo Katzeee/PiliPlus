@@ -37,6 +37,7 @@ import 'package:PiliPlus/models_new/video/video_play_info/subtitle.dart';
 import 'package:PiliPlus/models_new/video/video_stein_edgeinfo/data.dart';
 import 'package:PiliPlus/pages/audio/view.dart';
 import 'package:PiliPlus/pages/common/publish/publish_route.dart';
+import 'package:PiliPlus/pages/mini_player/mini_player.dart';
 import 'package:PiliPlus/pages/search/widgets/search_text.dart';
 import 'package:PiliPlus/pages/sponsor_block/block_mixin.dart';
 import 'package:PiliPlus/pages/video/download_panel/view.dart';
@@ -417,6 +418,10 @@ class VideoDetailController extends GetxController
     seasonId = args['seasonId'];
     pgcType = args['pgcType'];
     heroTag = args['heroTag'];
+    if (MiniPlayer.takeHandoff(heroTag)) {
+      _miniHandoff = true;
+      _autoPlay.value = videoState.value = true;
+    }
     cover = RxString(args['cover'] ?? '');
     isVertical = RxBool(args['isVertical'] ?? false);
 
@@ -756,6 +761,13 @@ class VideoDetailController extends GetxController
     return null;
   }
 
+  bool _miniHandoff = false;
+  bool _takeMiniHandoff() {
+    final handoff = _miniHandoff;
+    _miniHandoff = false;
+    return handoff;
+  }
+
   Future<void> playerInit({
     bool? autoplay,
     bool autoFullScreenFlag = false,
@@ -763,7 +775,9 @@ class VideoDetailController extends GetxController
     Duration? seek = defaultST ?? playedTime;
     if (seek == .zero) seek = null;
     seek ??= getFirstSegment();
-    await plPlayerController.setDataSource(
+    // A page reopened from the mini player keeps the running media.
+    // ignore: curly_braces_in_flow_control_structures
+    if (!_takeMiniHandoff()) await plPlayerController.setDataSource(
       isFileSource
           ? FileSource(
               dir: args['dirPath'],

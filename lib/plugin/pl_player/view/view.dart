@@ -25,6 +25,7 @@ import 'package:PiliPlus/models/common/super_resolution_type.dart';
 import 'package:PiliPlus/models/common/video/base_quality.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
 import 'package:PiliPlus/models_new/video/video_detail/episode.dart' as ugc;
+import 'package:PiliPlus/pages/mini_player/mini_player.dart';
 import 'package:PiliPlus/pages/common/common_intro_controller.dart';
 import 'package:PiliPlus/pages/danmaku/danmaku_model.dart';
 import 'package:PiliPlus/pages/live_room/widgets/bottom_control.dart'
@@ -1071,6 +1072,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           fullScreenTrigger(
             plPlayerController.fullScreenGestureReverse,
           );
+        } else if (!isFullScreen) {
+          MiniPlayer.onSwipe(widget.videoDetailController);
         }
       } else if (cumulativeDy < -threshold) {
         _gestureType = .center_up;
@@ -1078,6 +1081,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           fullScreenTrigger(
             !plPlayerController.fullScreenGestureReverse,
           );
+        } else if (!isFullScreen) {
+          MiniPlayer.onSwipe(widget.videoDetailController);
         }
       }
     } else if (_gestureType == .right) {

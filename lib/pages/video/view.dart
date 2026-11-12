@@ -24,6 +24,7 @@ import 'package:PiliPlus/models_new/video/video_tag/data.dart';
 import 'package:PiliPlus/pages/common/common_intro_controller.dart';
 import 'package:PiliPlus/pages/danmaku/view.dart';
 import 'package:PiliPlus/pages/episode_panel/view.dart';
+import 'package:PiliPlus/pages/mini_player/mini_player.dart';
 import 'package:PiliPlus/pages/video/ai_conclusion/view.dart';
 import 'package:PiliPlus/pages/video/controller.dart';
 import 'package:PiliPlus/pages/video/introduction/local/controller.dart';
@@ -356,7 +357,9 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
 
     if (!videoDetailController.plPlayerController.isCloseAll) {
-      videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
+      if (!MiniPlayer.owns(heroTag)) {
+        videoPlayerServiceHandler?.onVideoDetailDispose(heroTag);
+      }
       if (plPlayerController != null) {
         videoDetailController.makeHeartBeat();
         plPlayerController!.dispose();
@@ -402,7 +405,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   void didPopNext() {
     super.didPopNext();
 
-    if (videoDetailController.plPlayerController.isCloseAll) {
+    if (videoDetailController.plPlayerController.isCloseAll ||
+        MiniPlayer.onVideoPageResumed()) {
       return;
     }
 
